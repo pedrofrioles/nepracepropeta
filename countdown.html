@@ -1,48 +1,36 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Countdown Timer</title>
-    <script>
-        // Function to calculate business days
-        function businessDaysRemaining(startDate, totalDays, holidays, vacationWeeks) {
-            let currentDate = new Date(startDate);
-            let count = 0;
-            let totalBusinessDays = totalDays - (vacationWeeks * 5);
-
-            while (count < totalBusinessDays) {
-                currentDate.setDate(currentDate.getDate() + 1);
-                if (currentDate.getDay() !== 0 && currentDate.getDay() !== 6 && 
-                    !holidays.includes(currentDate.toISOString().split('T')[0])) {
-                    count++;
-                }
-            }
-            return currentDate;
+    <style>
+        .countdown {
+            font-size: 2em;
+            color: #ff0000; /* Red for urgency */
+            font-weight: bold;
         }
-
-        // Define initial parameters
-        const startDate = new Date('2026-02-26T00:00:00Z');
-        const totalDays = 525;
-        const holidays = [
-            '2026-01-01', '2026-02-15', '2026-04-02', '2026-04-05',
-            '2026-05-23', '2026-07-01', '2026-09-05', '2026-10-10',
-            '2026-11-11', '2026-12-25'
-        ]; // List of Canadian statutory holidays for 2026
-        const vacationWeeks = 5; // Total vacation weeks
-
-        // Calculate future date
-        const futureDate = businessDaysRemaining(startDate, totalDays, holidays, vacationWeeks);
-
-        // Display result
-        document.addEventListener('DOMContentLoaded', function() {
-            document.getElementById('countdown').innerText = 
-                'Countdown ends on: ' + futureDate.toDateString();
-        });
-    </script>
+    </style>
 </head>
 <body>
-    <h1>Countdown Timer</h1>
-    <p id="countdown"></p>
+    <div id="countdown" class="countdown"></div>
+    <script>
+        function calculateBusinessDays(startDate, endDate) {
+            let count = 0;
+            let currentDate = new Date(startDate);
+            while (currentDate <= endDate) {
+                const dayOfWeek = currentDate.getDay();
+                if (dayOfWeek !== 0 && dayOfWeek !== 6) { // 0 = Sunday, 6 = Saturday
+                    count++;
+                }
+                currentDate.setDate(currentDate.getDate() + 1);
+            }
+            return count;
+        }
+
+        const startDate = new Date('2024-02-26'); // Replace with the original countdown start date
+        const endDate = new Date('2026-05-22'); // 525 business days after start
+        const businessDaysLeft = calculateBusinessDays(new Date(), endDate);
+
+        document.getElementById('countdown').innerHTML = `Days left: ${businessDaysLeft}`;
+    </script>
 </body>
 </html>
