@@ -1,12 +1,89 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Number of Prace Days Left</title>
+<meta charset="UTF-8">
+<title>Ne Prace Pro Peta - Business Day Countdown</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        text-align: center;
+        margin-top: 100px;
+        background-color: #f4f4f4;
+    }
+    .counter {
+        font-size: 64px;
+        font-weight: bold;
+        color: #2c3e50;
+    }
+    .label {
+        font-size: 24px;
+        margin-top: 10px;
+    }
+    .info {
+        margin-top: 30px;
+        font-size: 14px;
+        color: #555;
+    }
+</style>
 </head>
 <body>
-    <h1>Number of Prace Days Left</h1>
-    <div id="countdown">
-        <!-- Countdown Timer Logic Here -->
-    </div>
+
+<div class="counter" id="daysRemaining">525</div>
+<div class="label">Business Days Remaining</div>
+<div class="info" id="lastUpdated"></div>
+
+<script>
+const STARTING_DAYS = 525;
+
+// Ontario + Federal Holidays (2026–2028)
+const holidays = [
+    // 2026
+    "2026-01-01","2026-02-16","2026-04-03","2026-05-18","2026-07-01",
+    "2026-08-03","2026-09-07","2026-10-12","2026-12-25",
+    // 2027
+    "2027-01-01","2027-02-15","2027-03-26","2027-05-24","2027-07-01",
+    "2027-08-02","2027-09-06","2027-10-11","2027-12-27",
+    // 2028
+    "2028-01-01","2028-02-21","2028-04-14","2028-05-22","2028-07-01",
+    "2028-08-07","2028-09-04","2028-10-09"
+];
+
+function isBusinessDay(date) {
+    const day = date.getDay();
+    const isoDate = date.toISOString().split("T")[0];
+
+    if (day === 0 || day === 6) return false; // Sunday or Saturday
+    if (holidays.includes(isoDate)) return false;
+
+    return true;
+}
+
+function calculateBusinessDaysElapsed(startDate, today) {
+    let count = 0;
+    let current = new Date(startDate);
+
+    while (current <= today) {
+        if (isBusinessDay(current)) {
+            count++;
+        }
+        current.setDate(current.getDate() + 1);
+    }
+    return count;
+}
+
+// INITIAL SETUP
+const startDate = new Date("2026-02-26");
+const today = new Date();
+
+const elapsed = calculateBusinessDaysElapsed(startDate, today);
+let remaining = STARTING_DAYS - elapsed;
+if (remaining < 0) remaining = 0;
+
+document.getElementById("daysRemaining").textContent = remaining;
+document.getElementById("lastUpdated").textContent =
+    "Last updated: " + today.toDateString();
+
+</script>
+
 </body>
 </html>
