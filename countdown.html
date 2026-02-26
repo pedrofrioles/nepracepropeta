@@ -5,52 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Countdown</title>
     <style>
-        body { font-family: Arial, sans-serif; }
-        #target-date { font-size: 24px; font-weight: bold; }
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            color: black;
+            background-color: white;
+        }
     </style>
 </head>
 <body>
-
-<h1>Business Days Countdown</h1>
-<div id="target-date"></div>
-
-<script>
-const startDate = new Date('2026-02-26');
-const holidays = [
-    '2026-01-01', // New Year's Day
-    '2026-02-21', // Family Day
-    '2026-04-15', // Good Friday
-    '2026-05-23', // Victoria Day
-    '2026-07-01', // Canada Day
-    '2026-08-01', // Civic Holiday
-    '2026-09-05', // Labour Day
-    '2026-10-10', // Thanksgiving
-    '2026-12-25', // Christmas Day
-    '2026-12-26'  // Boxing Day
-].map(dateString => new Date(dateString));
-
-// Function to calculate target date
-function calculateBusinessDays(startDate, businessDays, holidays) {
-    let currentDate = new Date(startDate);
-    let daysAdded = 0;
-    
-    while (daysAdded < businessDays) {
-        currentDate.setDate(currentDate.getDate() + 1);
-        const isWeekend = currentDate.getDay() === 0 || currentDate.getDay() === 6;
-        const isHoliday = holidays.some(holiday => holiday.getTime() === currentDate.getTime());
-        
-        if (!isWeekend && !isHoliday) {
-            daysAdded++;
-        }
-    }
-
-    return currentDate;
-}
-
-// Calculate 525 business days excluding 25 vacation days
-const targetDate = calculateBusinessDays(startDate, 525 + 25, holidays);
-document.getElementById('target-date').innerText = `Target Date: ${targetDate.toDateString()}`;
-</script>
-
+    <h1>Countdown</h1>
+    <div id="countdown"></div>
+    <script>
+        // Your countdown logic here
+    </script>
 </body>
 </html>
