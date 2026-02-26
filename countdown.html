@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Countdown Timer</title>
+    <script>
+        // Function to calculate business days
+        function businessDaysRemaining(startDate, totalDays, holidays, vacationWeeks) {
+            let currentDate = new Date(startDate);
+            let count = 0;
+            let totalBusinessDays = totalDays - (vacationWeeks * 5);
+
+            while (count < totalBusinessDays) {
+                currentDate.setDate(currentDate.getDate() + 1);
+                if (currentDate.getDay() !== 0 && currentDate.getDay() !== 6 && 
+                    !holidays.includes(currentDate.toISOString().split('T')[0])) {
+                    count++;
+                }
+            }
+            return currentDate;
+        }
+
+        // Define initial parameters
+        const startDate = new Date('2026-02-26T00:00:00Z');
+        const totalDays = 525;
+        const holidays = [
+            '2026-01-01', '2026-02-15', '2026-04-02', '2026-04-05',
+            '2026-05-23', '2026-07-01', '2026-09-05', '2026-10-10',
+            '2026-11-11', '2026-12-25'
+        ]; // List of Canadian statutory holidays for 2026
+        const vacationWeeks = 5; // Total vacation weeks
+
+        // Calculate future date
+        const futureDate = businessDaysRemaining(startDate, totalDays, holidays, vacationWeeks);
+
+        // Display result
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('countdown').innerText = 
+                'Countdown ends on: ' + futureDate.toDateString();
+        });
+    </script>
+</head>
+<body>
+    <h1>Countdown Timer</h1>
+    <p id="countdown"></p>
+</body>
+</html>
