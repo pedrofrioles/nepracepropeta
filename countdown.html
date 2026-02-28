@@ -28,7 +28,7 @@
 </head>
 <body>
 
-<div class="counter" id="daysRemaining">525</div>
+<div class="counter" id="daysRemaining">...</div>
 <div class="label">Prace Days Remaining</div>
 <div class="info" id="lastUpdated"></div>
 
@@ -50,12 +50,21 @@ const holidays = [
 
 function isBusinessDay(date) {
     const day = date.getDay();
-    const isoDate = date.toISOString().split("T")[0];
+    const isoDate = date.toLocaleDateString("en-CA"); // YYYY-MM-DD in local time
 
-    if (day === 0 || day === 6) return false; // Sunday or Saturday
+    if (day === 0 || day === 6) return false; // weekend
     if (holidays.includes(isoDate)) return false;
 
     return true;
+}
+
+// If today is Sat/Sun/holiday, roll back to the last business day
+function getLastBusinessDay(date) {
+    const d = new Date(date);
+    while (!isBusinessDay(d)) {
+        d.setDate(d.getDate() - 1);
+    }
+    return d;
 }
 
 function calculateBusinessDaysElapsed(startDate, today) {
@@ -73,7 +82,8 @@ function calculateBusinessDaysElapsed(startDate, today) {
 
 // INITIAL SETUP
 const startDate = new Date("2026-02-26");
-const today = new Date();
+const rawToday = new Date();
+const today = getLastBusinessDay(rawToday); // prevents weekend deductions
 
 const elapsed = calculateBusinessDaysElapsed(startDate, today);
 let remaining = STARTING_DAYS - elapsed;
@@ -81,8 +91,7 @@ if (remaining < 0) remaining = 0;
 
 document.getElementById("daysRemaining").textContent = remaining;
 document.getElementById("lastUpdated").textContent =
-    "Last updated: " + today.toDateString();
-
+    "Last updated (business day): " + today.toDateString();
 </script>
 
 </body>
