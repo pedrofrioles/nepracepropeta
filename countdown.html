@@ -2,7 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Ne Prace Pro Peta - Business Day Countdown</title>
+
 <style>
     body {
         font-family: Arial, sans-serif;
@@ -10,21 +12,25 @@
         margin-top: 100px;
         background-color: #f4f4f4;
     }
+
     .counter {
         font-size: 64px;
         font-weight: bold;
         color: #2c3e50;
     }
+
     .label {
         font-size: 24px;
         margin-top: 10px;
     }
+
     .percent {
         font-size: 28px;
         margin-top: 20px;
         color: #16a085;
         font-weight: bold;
     }
+
     .progress-container {
         width: 60%;
         height: 30px;
@@ -33,19 +39,36 @@
         margin: 25px auto;
         overflow: hidden;
     }
+
     .progress-bar {
         height: 100%;
         width: 0%;
         background-color: #16a085;
         transition: width 1s ease-in-out;
     }
+
     .info {
         margin-top: 30px;
         font-size: 14px;
         color: #555;
     }
+
+    @media (max-width: 600px) {
+        .counter {
+            font-size: 48px;
+        }
+
+        .label {
+            font-size: 20px;
+        }
+
+        .progress-container {
+            width: 85%;
+        }
+    }
 </style>
 </head>
+
 <body>
 
 <div class="counter" id="daysRemaining">...</div>
@@ -57,76 +80,173 @@
     <div class="progress-bar" id="progressBar"></div>
 </div>
 
+<div class="info" id="dateRange"></div>
 <div class="info" id="lastUpdated"></div>
 
 <script>
-const STARTING_DAYS = 526;
+// COUNTDOWN DATE RANGE
+const START_DATE = "2026-10-17";
+const END_DATE = "2026-12-31";
 
-// Ontario + Federal Holidays (2026–2028)
+// Ontario + Federal Holidays
 const holidays = [
     // 2026
-    "2026-01-01","2026-02-16","2026-04-03","2026-05-18","2026-07-01",
-    "2026-08-03","2026-09-07","2026-10-12","2026-12-25",
+    "2026-01-01",
+    "2026-02-16",
+    "2026-04-03",
+    "2026-05-18",
+    "2026-07-01",
+    "2026-08-03",
+    "2026-09-07",
+    "2026-10-12",
+    "2026-12-25",
+
     // 2027
-    "2027-01-01","2027-02-15","2027-03-26","2027-05-24","2027-07-01",
-    "2027-08-02","2027-09-06","2027-10-11","2027-12-27",
+    "2027-01-01",
+    "2027-02-15",
+    "2027-03-26",
+    "2027-05-24",
+    "2027-07-01",
+    "2027-08-02",
+    "2027-09-06",
+    "2027-10-11",
+    "2027-12-27",
+
     // 2028
-    "2028-01-01","2028-02-21","2028-04-14","2028-05-22","2028-07-01",
-    "2028-08-07","2028-09-04","2028-10-09"
+    "2028-01-01",
+    "2028-02-21",
+    "2028-04-14",
+    "2028-05-22",
+    "2028-07-01",
+    "2028-08-07",
+    "2028-09-04",
+    "2028-10-09"
 ];
+
+// Parse YYYY-MM-DD as a local calendar date
+function parseLocalDate(dateString) {
+    const [year, month, day] = dateString.split("-").map(Number);
+    return new Date(year, month - 1, day);
+}
+
+function formatLocalDate(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
+}
 
 function isBusinessDay(date) {
     const day = date.getDay();
-    const isoDate = date.toLocaleDateString("en-CA"); // YYYY-MM-DD local time
+    const isoDate = formatLocalDate(date);
 
-    if (day === 0 || day === 6) return false; // weekend
-    if (holidays.includes(isoDate)) return false;
+    if (day === 0 || day === 6) {
+        return false;
+    }
+
+    if (holidays.includes(isoDate)) {
+        return false;
+    }
 
     return true;
 }
 
-// If today is Sat/Sun/holiday, roll back to the last business day
+// If today is a weekend or holiday, use the
+// most recent business day for the last-updated display.
 function getLastBusinessDay(date) {
     const d = new Date(date);
+
     while (!isBusinessDay(d)) {
         d.setDate(d.getDate() - 1);
     }
+
     return d;
 }
 
-function calculateBusinessDaysElapsed(startDate, today) {
+// Count business days in the date range, inclusive.
+function countBusinessDays(startDate, endDate) {
     let count = 0;
-    let current = new Date(startDate);
+    const current = new Date(startDate);
 
-    while (current <= today) {
+    while (current <= endDate) {
         if (isBusinessDay(current)) {
             count++;
         }
+
         current.setDate(current.getDate() + 1);
     }
+
     return count;
 }
 
+// Count business days elapsed, inclusive of the
+// start date and the last business day reached.
+function calculateBusinessDaysElapsed(startDate, today) {
+    if (today < startDate) {
+        return 0;
+    }
+
+    return countBusinessDays(startDate, today);
+}
+
 // INITIAL SETUP
-const startDate = new Date("2026-02-26");
+const startDate = parseLocalDate(START_DATE);
+const endDate = parseLocalDate(END_DATE);
 const rawToday = new Date();
-const today = getLastBusinessDay(rawToday); // prevents weekend deductions
 
-const elapsed = calculateBusinessDaysElapsed(startDate, today);
-let remaining = STARTING_DAYS - elapsed;
-if (remaining < 0) remaining = 0;
+// Clamp the calculation to the countdown date range.
+const effectiveToday = new Date(
+    rawToday.getFullYear(),
+    rawToday.getMonth(),
+    rawToday.getDate()
+);
 
-// % COMPLETE
-const percent = ((elapsed / STARTING_DAYS) * 100).toFixed(2);
+const lastBusinessDay = getLastBusinessDay(effectiveToday);
+
+const totalBusinessDays = countBusinessDays(startDate, endDate);
+
+let elapsed = 0;
+let remaining = totalBusinessDays;
+
+if (effectiveToday >= startDate) {
+    const calculationDate = effectiveToday > endDate
+        ? endDate
+        : effectiveToday;
+
+    const lastCountedDay = getLastBusinessDay(calculationDate);
+
+    elapsed = calculateBusinessDaysElapsed(
+        startDate,
+        lastCountedDay
+    );
+
+    remaining = Math.max(0, totalBusinessDays - elapsed);
+}
+
+// Calculate percentage complete
+const percent = totalBusinessDays > 0
+    ? Math.min(100, (elapsed / totalBusinessDays) * 100)
+    : 0;
 
 // Update UI
 document.getElementById("daysRemaining").textContent = remaining;
-document.getElementById("percentComplete").textContent = percent + "% complete";
-document.getElementById("lastUpdated").textContent =
-    "Last updated (business day): " + today.toDateString();
 
-// Progress bar fill
-document.getElementById("progressBar").style.width = percent + "%";
+document.getElementById("percentComplete").textContent =
+    percent.toFixed(2) + "% complete";
+
+document.getElementById("dateRange").textContent =
+    "Period: " + startDate.toLocaleDateString("en-CA") +
+    " to " + endDate.toLocaleDateString("en-CA") +
+    " | Total business days: " + totalBusinessDays;
+
+document.getElementById("lastUpdated").textContent =
+    "Last updated (business day): " +
+    lastBusinessDay.toDateString();
+
+// Update progress bar
+document.getElementById("progressBar").style.width =
+    percent + "%";
 </script>
 
 </body>
