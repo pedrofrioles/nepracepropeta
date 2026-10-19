@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -85,7 +86,16 @@
 
 <script>
 // COUNTDOWN DATE RANGE
-const START_DATE = "2026-10-19";
+// Automatically starts from today's local date.
+function formatLocalDate(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
+}
+
+const START_DATE = formatLocalDate(new Date());
 const END_DATE = "2030-06-20";
 
 // Ontario + Federal Holidays
@@ -127,14 +137,6 @@ const holidays = [
 function parseLocalDate(dateString) {
     const [year, month, day] = dateString.split("-").map(Number);
     return new Date(year, month - 1, day);
-}
-
-function formatLocalDate(date) {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-
-    return `${year}-${month}-${day}`;
 }
 
 function isBusinessDay(date) {
@@ -180,8 +182,7 @@ function countBusinessDays(startDate, endDate) {
     return count;
 }
 
-// Count business days elapsed, inclusive of the
-// start date and the last business day reached.
+// Count business days elapsed, inclusive.
 function calculateBusinessDaysElapsed(startDate, today) {
     if (today < startDate) {
         return 0;
@@ -195,7 +196,6 @@ const startDate = parseLocalDate(START_DATE);
 const endDate = parseLocalDate(END_DATE);
 const rawToday = new Date();
 
-// Clamp the calculation to the countdown date range.
 const effectiveToday = new Date(
     rawToday.getFullYear(),
     rawToday.getMonth(),
@@ -236,8 +236,8 @@ document.getElementById("percentComplete").textContent =
     percent.toFixed(2) + "% complete";
 
 document.getElementById("dateRange").textContent =
-    "Period: " + startDate.toLocaleDateString("en-CA") +
-    " to " + endDate.toLocaleDateString("en-CA") +
+    "Period: " + START_DATE +
+    " to " + END_DATE +
     " | Total business days: " + totalBusinessDays;
 
 document.getElementById("lastUpdated").textContent =
@@ -251,3 +251,4 @@ document.getElementById("progressBar").style.width =
 
 </body>
 </html>
+
