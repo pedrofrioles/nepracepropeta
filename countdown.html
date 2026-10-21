@@ -1,13 +1,22 @@
+
 <script>
+// ============================================
 // COUNTDOWN SETTINGS
-const END_DATE = "2030-06-20";
+// ============================================
+const START_DATE = "2026-10-21"; // Fixed baseline date
+const END_DATE = "2030-06-20";   // Final workday
 const TARGET_REMAINING_DAYS = 803;
+
 const VACATION_WEEKS_PER_YEAR = 6;
 const WORKDAYS_PER_WEEK = 5;
 const VACATION_DAYS_PER_YEAR =
     VACATION_WEEKS_PER_YEAR * WORKDAYS_PER_WEEK;
 
-// Canadian/Ontario holidays used by this countdown.
+// ============================================
+// HOLIDAYS
+// Dates are YYYY-MM-DD.
+// This preserves your original holiday list.
+// ============================================
 const holidays = [
     "2026-01-01", "2026-02-16", "2026-04-03",
     "2026-05-18", "2026-07-01", "2026-08-03",
@@ -35,10 +44,17 @@ const holidays = [
     "2030-11-11", "2030-12-25", "2030-12-26"
 ];
 
+const holidaySet = new Set(holidays);
+
+// ============================================
+// DATE HELPERS
+// Use local calendar dates to avoid UTC issues.
+// ============================================
 function formatLocalDate(date) {
     const y = date.getFullYear();
     const m = String(date.getMonth() + 1).padStart(2, "0");
     const d = String(date.getDate()).padStart(2, "0");
+
     return `${y}-${m}-${d}`;
 }
 
@@ -47,19 +63,34 @@ function parseLocalDate(value) {
     return new Date(y, m - 1, d);
 }
 
-function isBusinessDay(date) {
-    const day = date.getDay();
-    return day !== 0 &&
-           day !== 6 &&
-           !holidays.includes(formatLocalDate(date));
+function addDays(date, days) {
+    const result = new Date(date);
+    result.setDate(result.getDate() + days);
+    return result;
 }
 
+function isBusinessDay(date) {
+    const day = date.getDay();
+
+    return day !== 0 &&
+           day !== 6 &&
+           !holidaySet.has(formatLocalDate(date));
+}
+
+// ============================================
+// COUNT BUSINESS DAYS, INCLUSIVE
+// ============================================
 function countBusinessDays(start, end) {
+    if (start > end) return 0;
+
     let count = 0;
     const current = new Date(start);
 
     while (current <= end) {
-        if (isBusinessDay(current)) count++;
+        if (isBusinessDay(current)) {
+            count++;
+        }
+
         current.setDate(current.getDate() + 1);
     }
 
@@ -67,32 +98,46 @@ function countBusinessDays(start, end) {
 }
 
 function countWeekdays(start, end) {
+    if (start > end) return 0;
+
     let count = 0;
     const current = new Date(start);
 
     while (current <= end) {
-        if (current.getDay() !== 0 && current.getDay() !== 6) {
+        const day = current.getDay();
+
+        if (day !== 0 && day !== 6) {
             count++;
         }
+
         current.setDate(current.getDate() + 1);
     }
 
     return count;
 }
 
-// Calculate annual vacation allowance, prorated by calendar year.
+// ============================================
+// ANNUAL VACATION PRORATION
+// Six weeks = 30 weekdays per calendar year.
+// ============================================
 function calculateVacation(start, end) {
     if (start > end) return 0;
 
     let total = 0;
 
-    for (let year = start.getFullYear();
-         year <= end.getFullYear(); year++) {
-
+    for (
+        let year = start.getFullYear();
+        year <= end.getFullYear();
+        year++
+    ) {
         const yearStart = parseLocalDate(`${year}-01-01`);
         const yearEnd = parseLocalDate(`${year}-12-31`);
-        const segmentStart = start > yearStart ? start : yearStart;
-        const segmentEnd = end < yearEnd ? end : yearEnd;
+
+        const segmentStart =
+            start > yearStart ? start : yearStart;
+
+        const segmentEnd =
+            end < yearEnd ? end : yearEnd;
 
         total += VACATION_DAYS_PER_YEAR *
             countWeekdays(segmentStart, segmentEnd) /
@@ -100,6 +145,21 @@ function calculateVacation(start, end) {
     }
 
     return total;
+}
+
+// ============================================
+// COUNT COMPLETED ELIGIBLE WORKDAYS
+// ============================================
+function countElapsedWorkdays(start, end) {
+    if (start > end) return 0;
+
+    const businessDays = countBusinessDays(start, end);
+    const vacationDays = calculateVacation(start, end);
+
+    return Math.max(
+        0,
+        Math.round(businessDays - vacationDays)
+    );
 }
 
 function getLastBusinessDay(date) {
@@ -112,75 +172,127 @@ function getLastBusinessDay(date) {
     return current;
 }
 
-// Dynamic start date: today.
-const today = parseLocalDate(formatLocalDate(new Date()));
-const START_DATE = formatLocalDate(today);
-const startDate = parseLocalDate(START_DATE);
-const endDate = parseLocalDate(END_DATE);
+// ============================================
+// SAFE PAGE UPDATES
+// ============================================
+function setText(id, value) {
+    const element = document.getElementById(id);
 
-const totalBusinessDays = countBusinessDays(startDate, endDate);
-const vacationDays = calculateVacation(startDate, endDate);
-
-// The actual calculation based on six weeks of vacation.
-const calculatedRemaining = Math.max(
-    0,
-    Math.round(totalBusinessDays - vacationDays)
-);
-
-// Calibration offset makes the countdown start at 803 today.
-// The offset is applied consistently so the countdown decreases
-// as eligible workdays pass.
-const calibrationOffset =
-    calculatedRemaining - TARGET_REMAINING_DAYS;
-
-function countElapsedWorkdays(start, end) {
-    if (start > end) return 0;
-
-    const businessDays = countBusinessDays(start, end);
-    const vacation = calculateVacation(start, end);
-
-    return Math.max(0, Math.round(businessDays - vacation));
+    if (element) {
+        element.textContent = value;
+    }
 }
 
-// Count completed workdays before today.
-const yesterday = new Date(today);
-yesterday.setDate(yesterday.getDate() - 1);
+// ============================================
+// MAIN COUNTDOWN
+// ============================================
+function updateCountdown() {
+    const today = parseLocalDate(
+        formatLocalDate(new Date())
+    );
 
-const elapsed = today <= startDate
-    ? 0
-    : countElapsedWorkdays(startDate, yesterday);
+    const startDate = parseLocalDate(START_DATE);
+    const endDate = parseLocalDate(END_DATE);
+    const yesterday = addDays(today, -1);
 
-const remaining = today > endDate
-    ? 0
-    : Math.max(0, TARGET_REMAINING_DAYS - elapsed);
+    // Count only workdays completed AFTER the fixed
+    // baseline date. The baseline day itself is not
+    // deducted from the starting 803.
+    const elapsedEnd = yesterday < endDate
+        ? yesterday
+        : endDate;
 
-const percent = TARGET_REMAINING_DAYS > 0
-    ? Math.min(
-        100,
-        ((TARGET_REMAINING_DAYS - remaining) /
-         TARGET_REMAINING_DAYS) * 100
-      )
-    : 100;
+    const elapsed = today <= startDate
+        ? 0
+        : countElapsedWorkdays(
+            addDays(startDate, 1),
+            elapsedEnd
+        );
 
-document.getElementById("daysRemaining").textContent =
-    remaining.toLocaleString();
+    // Never go below zero.
+    const remaining = today > endDate
+        ? 0
+        : Math.max(
+            0,
+            TARGET_REMAINING_DAYS - elapsed
+        );
 
-document.getElementById("percentComplete").textContent =
-    percent.toFixed(1) + "% complete";
+    const percent = TARGET_REMAINING_DAYS > 0
+        ? Math.min(
+            100,
+            Math.max(
+                0,
+                ((TARGET_REMAINING_DAYS - remaining) /
+                 TARGET_REMAINING_DAYS) * 100
+            )
+        )
+        : 100;
 
-document.getElementById("progressBar").style.width =
-    percent + "%";
+    // Total business days and prorated vacation
+    // across the countdown period.
+    const totalBusinessDays = countBusinessDays(
+        startDate,
+        endDate
+    );
 
-document.getElementById("dateRange").textContent =
-    `Period: ${START_DATE} to ${END_DATE}`;
+    const totalVacationDays = calculateVacation(
+        startDate,
+        endDate
+    );
 
-document.getElementById("vacationInfo").textContent =
-    `Vacation allowance: 6 weeks per year (${VACATION_DAYS_PER_YEAR} weekdays)`;
+    // Update display.
+    setText(
+        "daysRemaining",
+        remaining.toLocaleString()
+    );
 
-document.getElementById("holidayInfo").textContent =
-    `Business days before vacation: ${totalBusinessDays}`;
+    setText(
+        "percentComplete",
+        percent.toFixed(1) + "% complete"
+    );
 
-document.getElementById("lastUpdated").textContent =
-    "Last updated (business day): " +
-    getLastBusinessDay(today).toDateString();
+    setText(
+        "dateRange",
+        `Period: ${START_DATE} to ${END_DATE}`
+    );
+
+    setText(
+        "vacationInfo",
+        `Vacation allowance: 6 weeks per year ` +
+        `(${VACATION_DAYS_PER_YEAR} weekdays)`
+    );
+
+    setText(
+        "holidayInfo",
+        `Business days before vacation: ${totalBusinessDays}`
+    );
+
+    setText(
+        "lastUpdated",
+        "Last updated (business day): " +
+        getLastBusinessDay(today).toDateString()
+    );
+
+    const progressBar =
+        document.getElementById("progressBar");
+
+    if (progressBar) {
+        progressBar.style.width = percent + "%";
+        progressBar.setAttribute(
+            "aria-valuenow",
+            percent.toFixed(1)
+        );
+    }
+}
+
+// Run when the HTML has loaded.
+if (document.readyState === "loading") {
+    document.addEventListener(
+        "DOMContentLoaded",
+        updateCountdown
+    );
+} else {
+    updateCountdown();
+}
 </script>
+
