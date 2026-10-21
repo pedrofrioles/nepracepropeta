@@ -1,298 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Countdown</title>
+    <style>
+      :root {
+        --bg: #0f172a;
+        --bg-soft: #111827;
+        --panel: rgba(15, 23, 42, 0.72);
+        --panel-border: rgba(148, 163, 184, 0.2);
+        --text: #e2e8f0;
+        --muted: #94a3b8;
+        --accent: #38bdf8;
+        --accent-2: #22c55e;
+        --shadow: rgba(15, 23, 42, 0.45);
+      }
 
-<script>
-// ============================================
-// COUNTDOWN SETTINGS
-// ============================================
-const START_DATE = "2026-10-21"; // Fixed baseline date
-const END_DATE = "2030-06-20";   // Final workday
-const TARGET_REMAINING_DAYS = 803;
+      * {
+        box-sizing: border-box;
+      }
 
-const VACATION_WEEKS_PER_YEAR = 6;
-const WORKDAYS_PER_WEEK = 5;
-const VACATION_DAYS_PER_YEAR =
-    VACATION_WEEKS_PER_YEAR * WORKDAYS_PER_WEEK;
+      html, body {
+        margin: 0;
+        min-height: 100%;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background:
+          radial-gradient(circle at top, rgba(56, 189, 248, 0.18), transparent 28%),
+          linear-gradient(135deg, var(--bg) 0%, #020817 100%);
+        color: var(--text);
+      }
 
-// ============================================
-// HOLIDAYS
-// Dates are YYYY-MM-DD.
-// This preserves your original holiday list.
-// ============================================
-const holidays = [
-    "2026-01-01", "2026-02-16", "2026-04-03",
-    "2026-05-18", "2026-07-01", "2026-08-03",
-    "2026-09-07", "2026-09-30", "2026-10-12",
-    "2026-11-11", "2026-12-25", "2026-12-28",
+      body {
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+      }
 
-    "2027-01-01", "2027-02-15", "2027-03-26",
-    "2027-05-24", "2027-07-01", "2027-08-02",
-    "2027-09-06", "2027-09-30", "2027-10-11",
-    "2027-11-11", "2027-12-27", "2027-12-28",
+      .container {
+        width: min(900px, 100%);
+      }
 
-    "2028-01-03", "2028-02-21", "2028-04-14",
-    "2028-05-22", "2028-07-03", "2028-08-07",
-    "2028-09-04", "2028-09-30", "2028-10-09",
-    "2028-11-13", "2028-12-25", "2028-12-26",
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--panel-border);
+        border-radius: 24px;
+        box-shadow: 0 30px 80px var(--shadow);
+        padding: 32px 28px;
+        backdrop-filter: blur(10px);
+      }
 
-    "2029-01-01", "2029-02-19", "2029-03-30",
-    "2029-05-21", "2029-07-02", "2029-08-06",
-    "2029-09-03", "2029-10-01", "2029-10-08",
-    "2029-11-12", "2029-12-25", "2029-12-26",
+      .eyebrow {
+        margin: 0 0 10px;
+        color: var(--accent);
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        font-size: 0.72rem;
+        font-weight: 700;
+      }
 
-    "2030-01-01", "2030-02-18", "2030-04-19",
-    "2030-05-20", "2030-07-01", "2030-08-05",
-    "2030-09-02", "2030-09-30", "2030-10-14",
-    "2030-11-11", "2030-12-25", "2030-12-26"
-];
+      h1 {
+        margin: 0;
+        font-size: clamp(2rem, 4vw, 3.25rem);
+        line-height: 1.1;
+      }
 
-const holidaySet = new Set(holidays);
+      .date-range {
+        margin-top: 8px;
+        color: var(--muted);
+        font-size: 0.95rem;
+      }
 
-// ============================================
-// DATE HELPERS
-// Use local calendar dates to avoid UTC issues.
-// ============================================
-function formatLocalDate(date) {
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, "0");
-    const d = String(date.getDate()).padStart(2, "0");
+      .remaining {
+        margin-top: 28px;
+        display: flex;
+        align-items: baseline;
+        gap: 14px;
+        flex-wrap: wrap;
+      }
 
-    return `${y}-${m}-${d}`;
-}
+      .remaining-number {
+        font-size: clamp(3rem, 8vw, 6rem);
+        font-weight: 800;
+        letter-spacing: -0.06em;
+        line-height: 0.9;
+      }
 
-function parseLocalDate(value) {
-    const [y, m, d] = value.split("-").map(Number);
-    return new Date(y, m - 1, d);
-}
+      .remaining-label {
+        color: var(--muted);
+        font-size: 1rem;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+      }
 
-function addDays(date, days) {
-    const result = new Date(date);
-    result.setDate(result.getDate() + days);
-    return result;
-}
+      .progress-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        margin-top: 26px;
+        flex-wrap: wrap;
+      }
 
-function isBusinessDay(date) {
-    const day = date.getDay();
+      .progress-label {
+        color: var(--muted);
+        font-weight: 600;
+      }
 
-    return day !== 0 &&
-           day !== 6 &&
-           !holidaySet.has(formatLocalDate(date));
-}
+      .status {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: rgba(34, 197, 94, 0.14);
+        border: 1px solid rgba(34, 197, 94, 0.32);
+        color: #b6f4c8;
+        border-radius: 999px;
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
 
-// ============================================
-// COUNT BUSINESS DAYS, INCLUSIVE
-// ============================================
-function countBusinessDays(start, end) {
-    if (start > end) return 0;
+      .progress-bar {
+        position: relative;
+        width: 100%;
+        height: 18px;
+        margin-top: 14px;
+        background: rgba(148, 163, 184, 0.15);
+        border-radius: 999px;
+        overflow: hidden;
+        border: 1px solid rgba(148, 163, 184, 0.18);
+      }
 
-    let count = 0;
-    const current = new Date(start);
+      .progress-bar-fill {
+        display: block;
+        height: 100%;
+        width: 0%;
+        border-radius: 999px;
+        background: linear-gradient(90deg, var(--accent) 0%, var(--accent-2) 100%);
+        box-shadow: 0 0 18px rgba(56, 189, 248, 0.5);
+        transition: width 0.4s ease;
+      }
 
-    while (current <= end) {
-        if (isBusinessDay(current)) {
-            count++;
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 18px;
+        margin-top: 28px;
+      }
+
+      .stat-box {
+        padding: 18px 16px;
+        background: rgba(15, 23, 42, 0.5);
+        border: 1px solid rgba(148, 163, 184, 0.14);
+        border-radius: 16px;
+      }
+
+      .stat-label {
+        display: block;
+        color: var(--muted);
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-bottom: 8px;
+      }
+
+      .stat-value {
+        font-size: 1rem;
+        line-height: 1.5;
+        color: var(--text);
+      }
+
+      @media (max-width: 700px) {
+        .card {
+          padding: 24px 18px;
         }
 
-        current.setDate(current.getDate() + 1);
-    }
-
-    return count;
-}
-
-function countWeekdays(start, end) {
-    if (start > end) return 0;
-
-    let count = 0;
-    const current = new Date(start);
-
-    while (current <= end) {
-        const day = current.getDay();
-
-        if (day !== 0 && day !== 6) {
-            count++;
+        .stats {
+          grid-template-columns: 1fr;
         }
 
-        current.setDate(current.getDate() + 1);
-    }
+        .progress-header {
+          align-items: flex-start;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="container">
+      <section class="card" aria-live="polite">
+        <p class="eyebrow">Workday countdown</p>
+        <h1>Final stretch</h1>
+        <div class="date-range" id="dateRange">Period: 2026-10-21 to 2030-06-20</div>
 
-    return count;
-}
+        <div class="remaining">
+          <div class="remaining-number" id="daysRemaining">0</div>
+          <div class="remaining-label">days remaining</div>
+        </div>
 
-// ============================================
-// ANNUAL VACATION PRORATION
-// Six weeks = 30 weekdays per calendar year.
-// ============================================
-function calculateVacation(start, end) {
-    if (start > end) return 0;
+        <div class="progress-header">
+          <div class="progress-label" id="percentComplete">0.0% complete</div>
+          <div class="status" id="statusBadge">On track</div>
+        </div>
 
-    let total = 0;
+        <div
+          class="progress-bar"
+          role="progressbar"
+          aria-label="Countdown progress"
+          aria-valuemin="0"
+          aria-valuemax="100"
+          aria-valuenow="0"
+        >
+          <span class="progress-bar-fill" id="progressBar"></span>
+        </div>
 
-    for (
-        let year = start.getFullYear();
-        year <= end.getFullYear();
-        year++
-    ) {
-        const yearStart = parseLocalDate(`${year}-01-01`);
-        const yearEnd = parseLocalDate(`${year}-12-31`);
+        <div class="stats">
+          <div class="stat-box">
+            <span class="stat-label">Vacation allowance</span>
+            <div class="stat-value" id="vacationInfo">Vacation allowance: 6 weeks per year (30 weekdays)</div>
+          </div>
 
-        const segmentStart =
-            start > yearStart ? start : yearStart;
+          <div class="stat-box">
+            <span class="stat-label">Business days</span>
+            <div class="stat-value" id="holidayInfo">Business days before vacation: 0</div>
+          </div>
 
-        const segmentEnd =
-            end < yearEnd ? end : yearEnd;
+          <div class="stat-box">
+            <span class="stat-label">Last updated</span>
+            <div class="stat-value" id="lastUpdated">Last updated (business day): </div>
+          </div>
+        </div>
+      </section>
+    </main>
 
-        total += VACATION_DAYS_PER_YEAR *
-            countWeekdays(segmentStart, segmentEnd) /
+    <script>
+      const START_DATE = "2026-10-21";
+      const END_DATE = "2030-06-20";
+      const TARGET_REMAINING_DAYS = 803;
+
+      const VACATION_WEEKS_PER_YEAR = 6;
+      const WORKDAYS_PER_WEEK = 5;
+      const VACATION_DAYS_PER_YEAR = VACATION_WEEKS_PER_YEAR * WORKDAYS_PER_WEEK;
+
+      const holidays = [
+        "2026-01-01", "2026-02-16", "2026-04-03",
+        "2026-05-18", "2026-07-01", "2026-08-03",
+        "2026-09-07", "2026-09-30", "2026-10-12",
+        "2026-11-11", "2026-12-25", "2026-12-28",
+
+        "2027-01-01", "2027-02-15", "2027-03-26",
+        "2027-05-24", "2027-07-01", "2027-08-02",
+        "2027-09-06", "2027-09-30", "2027-10-11",
+        "2027-11-11", "2027-12-27", "2027-12-28",
+
+        "2028-01-03", "2028-02-21", "2028-04-14",
+        "2028-05-22", "2028-07-03", "2028-08-07",
+        "2028-09-04", "2028-09-30", "2028-10-09",
+        "2028-11-13", "2028-12-25", "2028-12-26",
+
+        "2029-01-01", "2029-02-19", "2029-03-30",
+        "2029-05-21", "2029-07-02", "2029-08-06",
+        "2029-09-03", "2029-10-01", "2029-10-08",
+        "2029-11-12", "2029-12-25", "2029-12-26",
+
+        "2030-01-01", "2030-02-18", "2030-04-19",
+        "2030-05-20", "2030-07-01", "2030-08-05",
+        "2030-09-02", "2030-09-30", "2030-10-14",
+        "2030-11-11", "2030-12-25", "2030-12-26"
+      ];
+
+      const holidaySet = new Set(holidays);
+
+      function formatLocalDate(date) {
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, "0");
+        const d = String(date.getDate()).padStart(2, "0");
+        return `${y}-${m}-${d}`;
+      }
+
+      function parseLocalDate(value) {
+        const [y, m, d] = value.split("-").map(Number);
+        return new Date(y, m - 1, d);
+      }
+
+      function addDays(date, days) {
+        const result = new Date(date);
+        result.setDate(result.getDate() + days);
+        return result;
+      }
+
+      function isBusinessDay(date) {
+        const day = date.getDay();
+        return day !== 0 && day !== 6 && !holidaySet.has(formatLocalDate(date));
+      }
+
+      function countBusinessDays(start, end) {
+        if (start > end) return 0;
+
+        let count = 0;
+        const current = new Date(start);
+
+        while (current <= end) {
+          if (isBusinessDay(current)) {
+            count++;
+          }
+          current.setDate(current.getDate() + 1);
+        }
+
+        return count;
+      }
+
+      function countWeekdays(start, end) {
+        if (start > end) return 0;
+
+        let count = 0;
+        const current = new Date(start);
+
+        while (current <= end) {
+          const day = current.getDay();
+          if (day !== 0 && day !== 6) {
+            count++;
+          }
+          current.setDate(current.getDate() + 1);
+        }
+
+        return count;
+      }
+
+      function calculateVacation(start, end) {
+        if (start > end) return 0;
+
+        let total = 0;
+
+        for (let year = start.getFullYear(); year <= end.getFullYear(); year++) {
+          const yearStart = parseLocalDate(`${year}-01-01`);
+          const yearEnd = parseLocalDate(`${year}-12-31`);
+
+          const segmentStart = start > yearStart ? start : yearStart;
+          const segmentEnd = end < yearEnd ? end : yearEnd;
+
+          total += (VACATION_DAYS_PER_YEAR * countWeekdays(segmentStart, segmentEnd)) /
             countWeekdays(yearStart, yearEnd);
-    }
+        }
 
-    return total;
-}
+        return total;
+      }
 
-// ============================================
-// COUNT COMPLETED ELIGIBLE WORKDAYS
-// ============================================
-function countElapsedWorkdays(start, end) {
-    if (start > end) return 0;
+      function countElapsedWorkdays(start, end) {
+        if (start > end) return 0;
 
-    const businessDays = countBusinessDays(start, end);
-    const vacationDays = calculateVacation(start, end);
+        const businessDays = countBusinessDays(start, end);
+        const vacationDays = calculateVacation(start, end);
 
-    return Math.max(
-        0,
-        Math.round(businessDays - vacationDays)
-    );
-}
+        return Math.max(0, Math.round(businessDays - vacationDays));
+      }
 
-function getLastBusinessDay(date) {
-    const current = new Date(date);
+      function getLastBusinessDay(date) {
+        const current = new Date(date);
+        while (!isBusinessDay(current)) {
+          current.setDate(current.getDate() - 1);
+        }
+        return current;
+      }
 
-    while (!isBusinessDay(current)) {
-        current.setDate(current.getDate() - 1);
-    }
+      function setText(id, value) {
+        const element = document.getElementById(id);
+        if (element) {
+          element.textContent = value;
+        }
+      }
 
-    return current;
-}
+      function setStatus(percent) {
+        const badge = document.getElementById("statusBadge");
+        if (!badge) return;
 
-// ============================================
-// SAFE PAGE UPDATES
-// ============================================
-function setText(id, value) {
-    const element = document.getElementById(id);
+        if (percent < 30) {
+          badge.textContent = "Starting out";
+          badge.style.background = "rgba(59, 130, 246, 0.14)";
+          badge.style.borderColor = "rgba(59, 130, 246, 0.3)";
+          badge.style.color = "#bfdbfe";
+        } else if (percent < 70) {
+          badge.textContent = "In progress";
+          badge.style.background = "rgba(245, 158, 11, 0.14)";
+          badge.style.borderColor = "rgba(245, 158, 11, 0.32)";
+          badge.style.color = "#fcd34d";
+        } else {
+          badge.textContent = "Nearly there";
+          badge.style.background = "rgba(34, 197, 94, 0.14)";
+          badge.style.borderColor = "rgba(34, 197, 94, 0.32)";
+          badge.style.color = "#bbf7d0";
+        }
+      }
 
-    if (element) {
-        element.textContent = value;
-    }
-}
+      function updateCountdown() {
+        const today = parseLocalDate(formatLocalDate(new Date()));
+        const startDate = parseLocalDate(START_DATE);
+        const endDate = parseLocalDate(END_DATE);
+        const yesterday = addDays(today, -1);
 
-// ============================================
-// MAIN COUNTDOWN
-// ============================================
-function updateCountdown() {
-    const today = parseLocalDate(
-        formatLocalDate(new Date())
-    );
+        const elapsedEnd = yesterday < endDate ? yesterday : endDate;
 
-    const startDate = parseLocalDate(START_DATE);
-    const endDate = parseLocalDate(END_DATE);
-    const yesterday = addDays(today, -1);
+        const elapsed = today <= startDate
+          ? 0
+          : countElapsedWorkdays(addDays(startDate, 1), elapsedEnd);
 
-    // Count only workdays completed AFTER the fixed
-    // baseline date. The baseline day itself is not
-    // deducted from the starting 803.
-    const elapsedEnd = yesterday < endDate
-        ? yesterday
-        : endDate;
+        const remaining = today > endDate
+          ? 0
+          : Math.max(0, TARGET_REMAINING_DAYS - elapsed);
 
-    const elapsed = today <= startDate
-        ? 0
-        : countElapsedWorkdays(
-            addDays(startDate, 1),
-            elapsedEnd
-        );
+        const percent = TARGET_REMAINING_DAYS > 0
+          ? Math.min(100, Math.max(0, ((TARGET_REMAINING_DAYS - remaining) / TARGET_REMAINING_DAYS) * 100))
+          : 100;
 
-    // Never go below zero.
-    const remaining = today > endDate
-        ? 0
-        : Math.max(
-            0,
-            TARGET_REMAINING_DAYS - elapsed
-        );
+        const totalBusinessDays = countBusinessDays(startDate, endDate);
 
-    const percent = TARGET_REMAINING_DAYS > 0
-        ? Math.min(
-            100,
-            Math.max(
-                0,
-                ((TARGET_REMAINING_DAYS - remaining) /
-                 TARGET_REMAINING_DAYS) * 100
-            )
-        )
-        : 100;
+        setText("daysRemaining", remaining.toLocaleString());
+        setText("percentComplete", `${percent.toFixed(1)}% complete`);
+        setText("dateRange", `Period: ${START_DATE} to ${END_DATE}`);
+        setText("vacationInfo", `Vacation allowance: 6 weeks per year (${VACATION_DAYS_PER_YEAR} weekdays)`);
+        setText("holidayInfo", `Business days before vacation: ${totalBusinessDays}`);
+        setText("lastUpdated", `Last updated (business day): ${getLastBusinessDay(today).toDateString()}`);
 
-    // Total business days and prorated vacation
-    // across the countdown period.
-    const totalBusinessDays = countBusinessDays(
-        startDate,
-        endDate
-    );
+        const progressBar = document.getElementById("progressBar");
+        const progressWidget = document.querySelector(".progress-bar");
 
-    const totalVacationDays = calculateVacation(
-        startDate,
-        endDate
-    );
+        if (progressBar) {
+          progressBar.style.width = `${percent}%`;
+        }
 
-    // Update display.
-    setText(
-        "daysRemaining",
-        remaining.toLocaleString()
-    );
+        if (progressWidget) {
+          progressWidget.setAttribute("aria-valuenow", percent.toFixed(1));
+        }
 
-    setText(
-        "percentComplete",
-        percent.toFixed(1) + "% complete"
-    );
+        setStatus(percent);
+      }
 
-    setText(
-        "dateRange",
-        `Period: ${START_DATE} to ${END_DATE}`
-    );
-
-    setText(
-        "vacationInfo",
-        `Vacation allowance: 6 weeks per year ` +
-        `(${VACATION_DAYS_PER_YEAR} weekdays)`
-    );
-
-    setText(
-        "holidayInfo",
-        `Business days before vacation: ${totalBusinessDays}`
-    );
-
-    setText(
-        "lastUpdated",
-        "Last updated (business day): " +
-        getLastBusinessDay(today).toDateString()
-    );
-
-    const progressBar =
-        document.getElementById("progressBar");
-
-    if (progressBar) {
-        progressBar.style.width = percent + "%";
-        progressBar.setAttribute(
-            "aria-valuenow",
-            percent.toFixed(1)
-        );
-    }
-}
-
-// Run when the HTML has loaded.
-if (document.readyState === "loading") {
-    document.addEventListener(
-        "DOMContentLoaded",
-        updateCountdown
-    );
-} else {
-    updateCountdown();
-}
-</script>
-
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", updateCountdown);
+      } else {
+        updateCountdown();
+      }
+    </script>
+  </body>
+</html>
