@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -238,11 +238,12 @@
     <script>
       const START_DATE = "2026-10-21";
       const END_DATE = "2030-06-20";
-      const TARGET_REMAINING_DAYS = 803;
-
       const VACATION_WEEKS_PER_YEAR = 6;
       const WORKDAYS_PER_WEEK = 5;
       const VACATION_DAYS_PER_YEAR = VACATION_WEEKS_PER_YEAR * WORKDAYS_PER_WEEK;
+      const PERSONAL_DAYS_PER_YEAR = 10;
+      const TOTAL_TIME_OFF_DAYS_PER_YEAR =
+        VACATION_DAYS_PER_YEAR + PERSONAL_DAYS_PER_YEAR;
 
       const holidays = [
         "2026-01-01", "2026-02-16", "2026-04-03",
@@ -329,7 +330,7 @@
         return count;
       }
 
-      function calculateVacation(start, end) {
+      function calculateTimeOff(start, end) {
         if (start > end) return 0;
 
         let total = 0;
@@ -341,7 +342,8 @@
           const segmentStart = start > yearStart ? start : yearStart;
           const segmentEnd = end < yearEnd ? end : yearEnd;
 
-          total += (VACATION_DAYS_PER_YEAR * countWeekdays(segmentStart, segmentEnd)) /
+          // Prorate vacation and personal days by weekdays in each calendar year.
+          total += (TOTAL_TIME_OFF_DAYS_PER_YEAR * countWeekdays(segmentStart, segmentEnd)) /
             countWeekdays(yearStart, yearEnd);
         }
 
@@ -352,9 +354,9 @@
         if (start > end) return 0;
 
         const businessDays = countBusinessDays(start, end);
-        const vacationDays = calculateVacation(start, end);
+        const timeOffDays = calculateTimeOff(start, end);
 
-        return Math.max(0, Math.round(businessDays - vacationDays));
+        return Math.max(0, Math.round(businessDays - timeOffDays));
       }
 
       function getLastBusinessDay(date) {
@@ -406,21 +408,27 @@
           ? 0
           : countElapsedWorkdays(addDays(startDate, 1), elapsedEnd);
 
+        // Calculate the full countdown baseline from the dates and annual allowances.
+        const totalBusinessDays = countBusinessDays(startDate, endDate);
+        const totalTimeOffDays = calculateTimeOff(startDate, endDate);
+        const totalWorkingDays = Math.max(0, Math.round(totalBusinessDays - totalTimeOffDays));
+
         const remaining = today > endDate
           ? 0
-          : Math.max(0, TARGET_REMAINING_DAYS - elapsed);
+          : Math.max(0, totalWorkingDays - elapsed);
 
-        const percent = TARGET_REMAINING_DAYS > 0
-          ? Math.min(100, Math.max(0, ((TARGET_REMAINING_DAYS - remaining) / TARGET_REMAINING_DAYS) * 100))
+        const percent = totalWorkingDays > 0
+          ? Math.min(100, Math.max(0, ((totalWorkingDays - remaining) / totalWorkingDays) * 100))
           : 100;
-
-        const totalBusinessDays = countBusinessDays(startDate, endDate);
 
         setText("daysRemaining", remaining.toLocaleString());
         setText("percentComplete", `${percent.toFixed(1)}% complete`);
         setText("dateRange", `Period: ${START_DATE} to ${END_DATE}`);
-        setText("vacationInfo", `Vacation allowance: 6 weeks per year (${VACATION_DAYS_PER_YEAR} weekdays)`);
-        setText("holidayInfo", `Business days before vacation: ${totalBusinessDays}`);
+        setText(
+          "vacationInfo",
+          `Time off per year: 6 weeks vacation (${VACATION_DAYS_PER_YEAR} days) + ${PERSONAL_DAYS_PER_YEAR} personal days (${TOTAL_TIME_OFF_DAYS_PER_YEAR} total weekdays)`
+        );
+        setText("holidayInfo", `Business days after holidays, before time off: ${totalBusinessDays}`);
         setText("lastUpdated", `Last updated (business day): ${getLastBusinessDay(today).toDateString()}`);
 
         const progressBar = document.getElementById("progressBar");
