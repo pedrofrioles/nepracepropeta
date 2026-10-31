@@ -374,27 +374,39 @@
         }
       }
 
-      function setStatus(percent) {
-        const badge = document.getElementById("statusBadge");
-        if (!badge) return;
+     function setStatus(percent) {
+  const badge = document.getElementById("statusBadge");
+  if (!badge) return;
 
-        if (percent < 30) {
-          badge.textContent = "Starting out";
-          badge.style.background = "rgba(59, 130, 246, 0.14)";
-          badge.style.borderColor = "rgba(59, 130, 246, 0.3)";
-          badge.style.color = "#bfdbfe";
-        } else if (percent < 70) {
-          badge.textContent = "In progress";
-          badge.style.background = "rgba(245, 158, 11, 0.14)";
-          badge.style.borderColor = "rgba(245, 158, 11, 0.32)";
-          badge.style.color = "#fcd34d";
-        } else {
-          badge.textContent = "Nearly there";
-          badge.style.background = "rgba(34, 197, 94, 0.14)";
-          badge.style.borderColor = "rgba(34, 197, 94, 0.32)";
-          badge.style.color = "#bbf7d0";
-        }
-      }
+  if (percent < 30) {
+    badge.textContent = "Starting out";
+    badge.style.background = "rgba(59, 130, 246, 0.14)";
+    badge.style.borderColor = "rgba(59, 130, 246, 0.3)";
+    badge.style.color = "#bfdbfe";
+    badge.style.cursor = "pointer";
+    badge.onclick = () => {
+      window.open(
+        "https://www.skylinewebcams.com/en/webcam/espana/canarias/las-palmas-gran-canaria/playa-grande-las-canteras.html",
+        "_blank",
+        "noopener,noreferrer"
+      );
+    };
+  } else if (percent < 70) {
+    badge.textContent = "In progress";
+    badge.style.background = "rgba(245, 158, 11, 0.14)";
+    badge.style.borderColor = "rgba(245, 158, 11, 0.32)";
+    badge.style.color = "#fcd34d";
+    badge.style.cursor = "default";
+    badge.onclick = null;
+  } else {
+    badge.textContent = "Nearly there";
+    badge.style.background = "rgba(34, 197, 94, 0.14)";
+    badge.style.borderColor = "rgba(34, 197, 94, 0.32)";
+    badge.style.color = "#bbf7d0";
+    badge.style.cursor = "default";
+    badge.onclick = null;
+  }
+}
 
       function updateCountdown() {
         const today = parseLocalDate(formatLocalDate(new Date()));
